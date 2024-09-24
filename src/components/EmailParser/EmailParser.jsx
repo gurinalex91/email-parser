@@ -15,13 +15,20 @@ const EmailParser = () => {
 
     useEffect(() => {
         const socket = new WebSocket("ws://localhost:5001");
-        setWs(socket);
+        socket.onopen = () => {
+            console.log("Соединение установлено");
+            setWs(socket);
+        };
 
         socket.onmessage = (event) => {
             const { message } = JSON.parse(event.data);
             setModalMessage(message);
             setModalOpen(true);
             setLoading(false);
+        };
+
+        socket.onclose = () => {
+            console.log("Соединение закрыто");
         };
 
         return () => {
@@ -67,16 +74,6 @@ const EmailParser = () => {
         }
     }, [ws]);
 
-    const handleParse = () => {
-        if (ws) {
-            setLoading(true);
-            const siteList = websites
-                .split("\n")
-                .filter((site) => site.trim() !== "");
-            ws.send(JSON.stringify({ websites: siteList }));
-        }
-    };
-
     const handleClear = () => {
         setWebsites("");
         setResults([]);
@@ -88,14 +85,16 @@ const EmailParser = () => {
         <div className="App">
             <h1>Email Parser</h1>
             <div className="content">
-                <p>Welcome to the huyeviy email parser.</p>
+                <p>Welcome to the email parser.</p>
             </div>
             <div className="clear-btn">
                 <button onClick={handleClear}>Очистить</button>
             </div>
             <WebsiteInput websites={websites} setWebsites={setWebsites} />
             <ActionButtons
-                handleParse={handleParse}
+                websites={websites}
+                ws={ws}
+                setLoading={setLoading}
                 loading={loading}
             />
             <EmailTable results={results} />
