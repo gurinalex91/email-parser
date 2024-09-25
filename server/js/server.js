@@ -1,6 +1,6 @@
 // WebSocket server logic
 import { WebSocketServer } from 'ws';
-import { parseMultipleSites } from './parser.js';
+import { parseSitesFromSitemap } from './parseMultipleSitesFromSitemap.js';
 
 export const startWebSocketServer = () => {
     const wss = new WebSocketServer({ port: 5001 });
@@ -12,7 +12,7 @@ export const startWebSocketServer = () => {
             const { websites } = JSON.parse(message);
 
             try {
-                await parseMultipleSites(websites, ws);
+                await parseSitesFromSitemap(websites, ws);
                 ws.send(JSON.stringify({ message: 'Парсинг завершен' }));
             } catch (error) {
                 console.error('Ошибка при парсинге сайтов:', error);
