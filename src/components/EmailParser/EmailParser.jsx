@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Modal from "../modals/modal";
 import EmailTable from "../EmailTable/EmailTable";
 import WebsiteInput from "../WebsiteInput/WebsiteInput";
@@ -13,66 +13,52 @@ const EmailParser = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const [modalMessage, setModalMessage] = useState("");
 
+    const handleWebSocketMessage = useCallback((data) => {
+        if (data.email) {
+            setResults((prevResults) => {
+                const siteIndex = prevResults.findIndex(
+                    (result) => result.website === data.website
+                );
+                if (siteIndex !== -1) {
+                    const site = { ...prevResults[siteIndex] };
+                    if (!site.emails.includes(data.email)) {
+                        site.emails.push(data.email);
+                    }
+                    return [
+                        ...prevResults.slice(0, siteIndex),
+                        site,
+                        ...prevResults.slice(siteIndex + 1),
+                    ];
+                }
+                return [
+                    ...prevResults,
+                    { website: data.website, emails: [data.email] },
+                ];
+            });
+        } else {
+            setModalMessage(data.message);
+            setModalOpen(true);
+            setLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         const socket = new WebSocket("ws://localhost:5001");
         socket.onopen = () => {
             console.log("Соединение установлено");
             setWs(socket);
         };
-
         socket.onmessage = (event) => {
-            const { message } = JSON.parse(event.data);
-            setModalMessage(message);
-            setModalOpen(true);
-            setLoading(false);
+            const data = JSON.parse(event.data);
+            handleWebSocketMessage(data);
         };
-
         socket.onclose = () => {
             console.log("Соединение закрыто");
         };
-
         return () => {
-            if (socket) {
-                socket.close();
-            }
+            socket.close();
         };
-    }, []);
-
-    useEffect(() => {
-        if (ws) {
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.email) {
-                    setResults((prevResults) => {
-                        const updatedResults = [...prevResults];
-                        const siteIndex = updatedResults.findIndex(
-                            (result) => result.website === data.website
-                        );
-
-                        if (siteIndex !== -1) {
-                            const site = updatedResults[siteIndex];
-                            if (!site.emails.includes(data.email)) {
-                                site.emails.push(data.email);
-                                updatedResults[siteIndex] = site;
-                            }
-                        } else {
-                            updatedResults.push({
-                                website: data.website,
-                                emails: [data.email],
-                            });
-                        }
-
-                        return updatedResults;
-                    });
-                } else {
-                    console.log(data.message);
-                    setModalMessage(data.message);
-                    setModalOpen(true);
-                    setLoading(false);
-                }
-            };
-        }
-    }, [ws]);
+    }, [handleWebSocketMessage]);
 
     const handleClear = () => {
         setWebsites("");
