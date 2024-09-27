@@ -1,17 +1,15 @@
 // Functions for parsing sites
 import { extractEmails } from './emailExtractor.js';
-import { extractLinks } from './linkExtractor.js';
+import { extractKeyLinks } from './linkExtractor.js';
 import { fetchWithTimeout } from './fetchUtils.js';
 import pLimit from 'p-limit';
 
-// Функция для парсинга одного сайта
+// Максимальное количество параллельных запросов
 const MAX_CONCURRENT_REQUESTS = 20;
 const limit = pLimit(MAX_CONCURRENT_REQUESTS);
 
 // Функция для парсинга одного сайта
-const parseSingleSite = async (site, maxDepth = 1, currentDepth = 0, ws) => {
-    if (currentDepth > maxDepth) return [];
-
+const parseSingleSite = async (site, ws) => {
     const emails = new Set(); // Набор для уникальных email-адресов
     const toVisit = new Set([site]); // Набор для отслеживания ссылок, которые нужно посетить
     const visited = new Set(); // Набор для уже посещенных сайтов
@@ -27,29 +25,22 @@ const parseSingleSite = async (site, maxDepth = 1, currentDepth = 0, ws) => {
                 const response = await fetchWithTimeout(currentUrl); // Делаем запрос к URL с таймаутом
                 const html = await response.text(); // Получаем HTML содержимое страницы
 
-                // Извлекаем email-адреса из mailto и текста
-                const newEmails = extractEmails(html); // Используем объединенную функцию
-
-                // Добавляем email-адреса в набор
-                newEmails.forEach(email => emails.add(email));
+                // Извлекаем email-адреса и добавляем их в набор
+                extractEmails(html).forEach(email => emails.add(email));
 
                 // Отправляем новые email через WebSocket, если ws определён
                 if (ws) {
-                    newEmails.forEach(email => {
-                        ws.send(JSON.stringify({ website: site, email }));
-                    });
+                    emails.forEach(email => ws.send(JSON.stringify({ website: site, email })));
                 }
 
-                // Извлечение ссылок для последующего парсинга
-                if (currentDepth < maxDepth) {
-                    const links = extractLinks(html, site); // Извлекаем все ссылки на другие страницы сайта
-                    links.forEach(link => {
-                        // Добавляем ссылки, если они не были посещены и не находятся в очереди на посещение
-                        if (!visited.has(link) && !toVisit.has(link)) {
-                            toVisit.add(link);
-                        }
-                    });
-                }
+                // Извлечение ключевых ссылок для последующего парсинга
+                const links = extractKeyLinks(html, site); // Извлекаем ключевые ссылки
+                links.forEach(link => {
+                    // Добавляем ссылки, если они не были посещены и не находятся в очереди на посещение
+                    if (!visited.has(link) && !toVisit.has(link)) {
+                        toVisit.add(link);
+                    }
+                });
             } catch (error) {
                 console.error(`Ошибка при загрузке ${currentUrl}:`, error.message);
             }
@@ -65,7 +56,7 @@ const parseSingleSite = async (site, maxDepth = 1, currentDepth = 0, ws) => {
 
 // Основная функция для параллельного парсинга нескольких сайтов
 export const parseMultipleSites = async (sites, ws) => {
-    const siteParsingPromises = sites.map(site => limit(() => parseSingleSite(site, 1, 0, ws)));
+    const siteParsingPromises = sites.map(site => limit(() => parseSingleSite(site, ws)));
     const results = await Promise.allSettled(siteParsingPromises);
 
     return results.reduce((allEmails, result) => {
