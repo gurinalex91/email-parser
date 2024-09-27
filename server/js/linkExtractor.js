@@ -17,14 +17,13 @@ export const extractLinks = (html, baseUrl) => {
                 if (href.startsWith('#')) {
                     return;
                 }
-
-                // Преобразуем относительные ссылки в абсолютные
+                
                 const fullUrl = new URL(href, baseUrl).href;
                 const linkDomain = new URL(fullUrl).hostname;
-
-                // Проверяем, что ссылка ведет на тот же домен и не имеет запрещённых расширений
+                
+                // Проверяем домен и исключаем ссылки на файлы с запрещёнными расширениями
                 if (linkDomain === baseDomain && !ignoreExtensions.test(fullUrl)) {
-                    links.add(fullUrl);
+                    links.add(fullUrl);  // Добавляем только если это не якорная ссылка и не файл с запрещённым расширением
                 }
             } catch (error) {
                 console.error(`Ошибка при обработке ссылки: ${href}`, error);
