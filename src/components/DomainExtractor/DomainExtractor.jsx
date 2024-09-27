@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 
 // Функция для извлечения домена из URL
 const extractDomain = (url) => {
