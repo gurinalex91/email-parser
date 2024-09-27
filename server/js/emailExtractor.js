@@ -1,5 +1,5 @@
- // Functions for extracting emails
- import * as cheerio from 'cheerio';
+// Functions for extracting emails
+import * as cheerio from 'cheerio';
 
 // Функция для Извлечения Текста без Медиа
 const extractTextContent = (html) => {
@@ -33,11 +33,14 @@ const extractEmailsFromText = (text) => {
     // Находим все email-адреса
     const emails = text.match(emailRegex) || [];
 
-        // Фильтруем адреса, исключая некорректные конструкции и нежелательные URL
-        return emails.filter(email => {
-            return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email) && 
-                   !/^(https?:\/\/|www\.|@)/.test(email); // Исключаем URL и адреса с @ в начале
-        });
+    // Фильтруем адреса, исключая некорректные конструкции, нежелательные URL и адреса с изображениями
+    return emails.filter(email => {
+        const isValidEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email);
+        const isNotImageEmail = !/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(email); // Исключаем email-адреса с расширениями изображений
+        const isNotUrl = !/^(https?:\/\/|www\.|@)/.test(email); // Исключаем URL и адреса с @ в начале
+
+        return isValidEmail && isNotImageEmail && isNotUrl;
+    });
 };
 
 // Главная функция для извлечения email-адресов (с приоритетом на mailto)
