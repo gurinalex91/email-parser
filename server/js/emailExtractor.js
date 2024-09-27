@@ -1,5 +1,5 @@
- // Functions for extracting emails
- import * as cheerio from 'cheerio';
+// Functions for extracting emails
+import * as cheerio from 'cheerio';
 
 // Функция для Извлечения Текста без Медиа
 const extractTextContent = (html) => {
@@ -10,6 +10,12 @@ const extractTextContent = (html) => {
     return textContent;
 };
 
+// Функция для проверки на наличие изображений в email
+const isValidEmail = (email) => {
+    const invalidEmailPattern = /@.*\.(jpg|jpeg|png|gif|bmp|svg|ico|tiff|webp|pdf|docx|pptx|xlsx|zip|rar)$/i;
+    return !invalidEmailPattern.test(email);
+};
+
 // Функция для извлечения email-адресов из ссылок mailto:
 const extractEmailsFromMailto = (html) => {
     const $ = cheerio.load(html);
@@ -18,7 +24,7 @@ const extractEmailsFromMailto = (html) => {
     // Поиск всех ссылок с href="mailto:"
     $('a[href^="mailto:"]').each((_, element) => {
         const email = $(element).attr('href').replace('mailto:', '').split('?')[0]; // игнорируем query-параметры
-        if (email) {
+        if (email && isValidEmail(email)) {
             emails.push(email.trim());
         }
     });
@@ -33,11 +39,12 @@ const extractEmailsFromText = (text) => {
     // Находим все email-адреса
     const emails = text.match(emailRegex) || [];
 
-        // Фильтруем адреса, исключая некорректные конструкции и нежелательные URL
-        return emails.filter(email => {
-            return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email) && 
-                   !/^(https?:\/\/|www\.|@)/.test(email); // Исключаем URL и адреса с @ в начале
-        });
+    // Фильтруем адреса, исключая некорректные конструкции и нежелательные URL
+    return emails.filter(email => {
+        return isValidEmail(email) && // Используем проверку на валидность email
+               /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email) && 
+               !/^(https?:\/\/|www\.|@)/.test(email); // Исключаем URL и адреса с @ в начале
+    });
 };
 
 // Главная функция для извлечения email-адресов (с приоритетом на mailto)

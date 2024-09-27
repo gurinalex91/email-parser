@@ -3,6 +3,7 @@ import Modal from "../modals/modal";
 import EmailTable from "../EmailTable/EmailTable";
 import WebsiteInput from "../WebsiteInput/WebsiteInput";
 import ActionButtons from "../ActionButtons/ActionButtons";
+import DomainExtractor from "../DomainExtractor/DomainExtractor"; // Импортируем новый компонент
 import "./EmailParser.scss";
 
 const EmailParser = () => {
@@ -14,6 +15,7 @@ const EmailParser = () => {
     const [modalMessage, setModalMessage] = useState("");
 
     useEffect(() => {
+        // Инициализация WebSocket при монтировании компонента
         const socket = new WebSocket("ws://localhost:5001");
         socket.onopen = () => {
             console.log("Соединение установлено");
@@ -21,10 +23,25 @@ const EmailParser = () => {
         };
 
         socket.onmessage = (event) => {
-            const { message } = JSON.parse(event.data);
-            setModalMessage(message);
-            setModalOpen(true);
-            setLoading(false);
+            const { message, email, website } = JSON.parse(event.data);
+
+            if (email) {
+                setResults((prevResults) => {
+                    const updatedResults = [...prevResults];
+
+                    // Добавляем новый результат в массив
+                    updatedResults.push({
+                        website: website,
+                        emails: [email],
+                    });
+
+                    return updatedResults;
+                });
+            } else {
+                setModalMessage(message);
+                setModalOpen(true);
+                setLoading(false);
+            }
         };
 
         socket.onclose = () => {
@@ -38,41 +55,15 @@ const EmailParser = () => {
         };
     }, []);
 
-    useEffect(() => {
+    const handleParse = () => {
         if (ws) {
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.email) {
-                    setResults((prevResults) => {
-                        const updatedResults = [...prevResults];
-                        const siteIndex = updatedResults.findIndex(
-                            (result) => result.website === data.website
-                        );
-
-                        if (siteIndex !== -1) {
-                            const site = updatedResults[siteIndex];
-                            if (!site.emails.includes(data.email)) {
-                                site.emails.push(data.email);
-                                updatedResults[siteIndex] = site;
-                            }
-                        } else {
-                            updatedResults.push({
-                                website: data.website,
-                                emails: [data.email],
-                            });
-                        }
-
-                        return updatedResults;
-                    });
-                } else {
-                    console.log(data.message);
-                    setModalMessage(data.message);
-                    setModalOpen(true);
-                    setLoading(false);
-                }
-            };
+            setLoading(true);
+            const siteList = websites
+                .split("\n")
+                .filter((site) => site.trim() !== "");
+            ws.send(JSON.stringify({ websites: siteList }));
         }
-    }, [ws]);
+    };
 
     const handleClear = () => {
         setWebsites("");
@@ -91,12 +82,11 @@ const EmailParser = () => {
                 <button onClick={handleClear}>Очистить</button>
             </div>
             <WebsiteInput websites={websites} setWebsites={setWebsites} />
-            <ActionButtons
-                websites={websites}
-                ws={ws}
-                setLoading={setLoading}
-                loading={loading}
-            />
+            <ActionButtons handleParse={handleParse} loading={loading} />
+            
+            {/* Компонент для обработки и отображения доменов */}
+            <DomainExtractor results={results} setResults={setResults} />
+
             <EmailTable results={results} />
             <Modal
                 isOpen={modalOpen}
