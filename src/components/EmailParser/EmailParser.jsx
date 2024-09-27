@@ -17,7 +17,10 @@ const EmailParser = () => {
     useEffect(() => {
         // Инициализация WebSocket при монтировании компонента
         const socket = new WebSocket("ws://localhost:5001");
-        setWs(socket);
+        socket.onopen = () => {
+            console.log("Соединение установлено");
+            setWs(socket);
+        };
 
         socket.onmessage = (event) => {
             const { message, email, website } = JSON.parse(event.data);
@@ -39,6 +42,10 @@ const EmailParser = () => {
                 setModalOpen(true);
                 setLoading(false);
             }
+        };
+
+        socket.onclose = () => {
+            console.log("Соединение закрыто");
         };
 
         return () => {
