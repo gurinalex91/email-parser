@@ -3,7 +3,7 @@ import "./EmailTable.scss";
 
 const EmailTable = ({ results }) => {
     return (
-        <table border="1" style={{ marginTop: "20px" }}>
+        <table className="table">
             <thead>
                 <tr>
                     <th>Website</th>
@@ -14,17 +14,23 @@ const EmailTable = ({ results }) => {
             <tbody>
                 {results.map((result, index) => (
                     <tr key={index}>
+                        {/* Используем website как уникальный ключ */}
                         <td>
                             <a
                                 href={`https://${result.website}`}
-                                target="blank"
-                                rel="noopener noreferrer"
-                            >
+                                target="_blank"
+                                rel="noopener noreferrer">
                                 {result.website}
                             </a>
                         </td>
-                        <td>{result.emails.join(", ")}</td>
-                        <td>{result.status}</td>
+                        <td>
+                            {result.emails.length > 0
+                                ? result.emails.join(", ")
+                                : "Нет email"}
+                        </td>
+                        {/* Обработка пустого списка */}
+                        <td>{result.status || "Неизвестный статус"}</td>
+                        {/* Обработка отсутствующего статуса */}
                     </tr>
                 ))}
             </tbody>

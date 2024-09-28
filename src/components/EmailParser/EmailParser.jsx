@@ -12,33 +12,92 @@ const EmailParser = () => {
     const [ws, setWs] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [modalMessage, setModalMessage] = useState("");
+    const [completedSites, setCompletedSites] = useState(0); // Количество завершённых сайтов
 
     const handleWebSocketMessage = useCallback((data) => {
-        if (data.email) {
+        console.log("WebSocket message received:", data); // Логируем полученные данные
+
+        if (data.status && data.status === "Ошибка") {
+            // Если статус "Ошибка", сохраняем сообщение об ошибке в результатах
             setResults((prevResults) => {
                 const siteIndex = prevResults.findIndex(
                     (result) => result.website === data.website
                 );
+
                 if (siteIndex !== -1) {
                     const site = { ...prevResults[siteIndex] };
-                    if (!site.emails.includes(data.email)) {
-                        site.emails.push(data.email);
-                    }
+                    site.status = `Ошибка: ${data.message || "Неизвестная ошибка"}`; // Устанавливаем сообщение об ошибке
+
                     return [
                         ...prevResults.slice(0, siteIndex),
                         site,
                         ...prevResults.slice(siteIndex + 1),
                     ];
                 }
+
                 return [
                     ...prevResults,
-                    { website: data.website, emails: [data.email] },
+                    {
+                        website: data.website,
+                        emails: data.emails || [],
+                        status: `Ошибка: ${data.message || "Неизвестная ошибка"}`,
+                    },
                 ];
             });
-        } else {
-            setModalMessage(data.message);
-            setModalOpen(true);
-            setLoading(false);
+        } else if (data.status && data.status !== "Готов") {
+            // Если статус "в процессе" или "Обновление", обновляем данные сайта
+            setResults((prevResults) => {
+                const siteIndex = prevResults.findIndex(
+                    (result) => result.website === data.website
+                );
+
+                if (siteIndex !== -1) {
+                    const site = { ...prevResults[siteIndex] };
+                    site.status = data.status;
+
+                    // Если есть новые email, добавляем их
+                    if (data.emails) {
+                        const uniqueEmails = Array.from(new Set([...site.emails, ...data.emails]));
+                        site.emails = uniqueEmails;
+                    }
+
+                    return [
+                        ...prevResults.slice(0, siteIndex),
+                        site,
+                        ...prevResults.slice(siteIndex + 1),
+                    ];
+                }
+
+                return [
+                    ...prevResults,
+                    {
+                        website: data.website,
+                        emails: data.emails || [],
+                        status: data.status,
+                    },
+                ];
+            });
+        } else if (data.status === "Готов") {
+            // Когда парсинг одного сайта завершён, обновляем статус на "Готов" и увеличиваем счётчик завершённых сайтов
+            setResults((prevResults) => {
+                const siteIndex = prevResults.findIndex(
+                    (result) => result.website === data.website
+                );
+
+                if (siteIndex !== -1) {
+                    const site = { ...prevResults[siteIndex] };
+                    site.status = "Готов"; // Устанавливаем финальный статус
+
+                    return [
+                        ...prevResults.slice(0, siteIndex),
+                        site,
+                        ...prevResults.slice(siteIndex + 1),
+                    ];
+                }
+
+                return prevResults;
+            });
+            setCompletedSites((prevCompletedSites) => prevCompletedSites + 1);
         }
     }, []);
 
@@ -60,11 +119,22 @@ const EmailParser = () => {
         };
     }, [handleWebSocketMessage]);
 
+    // Проверяем завершение парсинга всех сайтов
+    useEffect(() => {
+        if (completedSites > 0 && completedSites === results.length) {
+            // Если все сайты завершены, показываем модалку
+            setModalMessage("Парсинг завершён для всех сайтов");
+            setModalOpen(true);
+            setLoading(false);
+        }
+    }, [completedSites, results.length]);
+
     const handleClear = () => {
         setWebsites("");
         setResults([]);
         setLoading(false);
         setModalOpen(false);
+        setCompletedSites(0); // Сбрасываем количество завершённых сайтов
     };
 
     return (
