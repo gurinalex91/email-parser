@@ -123,7 +123,7 @@ const EmailParser = () => {
     useEffect(() => {
         if (completedSites > 0 && completedSites === results.length) {
             // Если все сайты завершены, показываем модалку
-            setModalMessage("Парсинг завершён для всех сайтов");
+            setModalMessage("Парсинг завершён");
             setModalOpen(true);
             setLoading(false);
         }
@@ -138,20 +138,19 @@ const EmailParser = () => {
     };
 
     return (
-        <div className="App">
-            <h1>Email Parser</h1>
+        <div className="container">
+            <h1 className="title">Email Parser</h1>
             <div className="content">
-                <p>Welcome to the email parser.</p>
+                <p className="text">Welcome to the email parser.</p>
             </div>
-            <div className="clear-btn">
-                <button onClick={handleClear}>Очистить</button>
-            </div>
+            
             <WebsiteInput websites={websites} setWebsites={setWebsites} />
             <ActionButtons
                 websites={websites}
                 ws={ws}
                 setLoading={setLoading}
                 loading={loading}
+                handleClear={handleClear}
             />
             <EmailTable results={results} />
             <Modal

@@ -6,6 +6,7 @@ const ActionButtons = ({
     ws,
     setLoading,
     loading, // проп для отслеживания состояния загрузки
+    handleClear,
 }) => {
     const handleParse = () => {
         if (ws) {
@@ -22,6 +23,7 @@ const ActionButtons = ({
             <button onClick={handleParse} disabled={loading}>
                 {loading ? "Идёт парсинг..." : "Парсить"}
             </button>
+            <button onClick={handleClear}>Очистить</button>
         </div>
     );
 };

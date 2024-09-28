@@ -1,3 +1,21 @@
+$accent-color: #00C9FF;
+
+.title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-align: center;
+    color: rgb(29, 29, 28);
+}
+
+.text {
+    font-size: 20px;
+    font-weight: 500;
+    margin-bottom: 10px;
+    color: rgb(80, 80, 80);
+    text-align: center;
+}
+
 .clear-btn {
     margin-bottom: 10px;
     display: flex;
@@ -7,14 +25,16 @@
 button {
     padding: 10px 20px;
     font-size: 16px;
-    background-color: #007bff;
+    background-color: $accent-color;
+    border: 1px solid $accent-color;
     color: white;
-    border: none;
-    border-radius: 5px;
+    border-radius: 10px;
     cursor: pointer;
+    transition: all 0.4s;
 
     &:hover {
-        background-color: #0056b3;
+        background-color: transparent;
+        box-shadow: 0 0 10px $accent-color;
+        color: $accent-color;
     }
 }
-

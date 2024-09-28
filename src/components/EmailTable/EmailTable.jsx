@@ -19,7 +19,8 @@ const EmailTable = ({ results }) => {
                             <a
                                 href={`https://${result.website}`}
                                 target="_blank"
-                                rel="noopener noreferrer">
+                                rel="noopener noreferrer"
+                                className="link">
                                 {result.website}
                             </a>
                         </td>
