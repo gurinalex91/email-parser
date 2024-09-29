@@ -4,6 +4,11 @@ import EmailTable from "../EmailTable/EmailTable";
 import WebsiteInput from "../WebsiteInput/WebsiteInput";
 import ActionButtons from "../ActionButtons/ActionButtons";
 import "./EmailParser.scss";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const EmailParser = () => {
     const [websites, setWebsites] = useState("");
@@ -13,6 +18,28 @@ const EmailParser = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const [modalMessage, setModalMessage] = useState("");
     const [completedSites, setCompletedSites] = useState(0); // Количество завершённых сайтов
+
+    const handleSupabaseMessage = (payload) => {
+        const { new: newData } = payload;
+        if (newData) {
+            setResults((prevResults) => [...prevResults, newData]);
+        }
+    };
+
+    useEffect(() => {
+        const subscription = supabase
+            .from("websites")
+            .on("*", (payload) => {
+                console.log("Change received!", payload);
+                // Обновляй состояние приложения в зависимости от изменений в таблице
+                handleSupabaseMessage(payload);
+            })
+            .subscribe();
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
 
     const handleWebSocketMessage = useCallback((data) => {
         console.log("WebSocket message received:", data); // Логируем полученные данные
@@ -26,7 +53,9 @@ const EmailParser = () => {
 
                 if (siteIndex !== -1) {
                     const site = { ...prevResults[siteIndex] };
-                    site.status = `Ошибка: ${data.message || "Неизвестная ошибка"}`; // Устанавливаем сообщение об ошибке
+                    site.status = `Ошибка: ${
+                        data.message || "Неизвестная ошибка"
+                    }`; // Устанавливаем сообщение об ошибке
 
                     return [
                         ...prevResults.slice(0, siteIndex),
@@ -40,7 +69,9 @@ const EmailParser = () => {
                     {
                         website: data.website,
                         emails: data.emails || [],
-                        status: `Ошибка: ${data.message || "Неизвестная ошибка"}`,
+                        status: `Ошибка: ${
+                            data.message || "Неизвестная ошибка"
+                        }`,
                     },
                 ];
             });
@@ -57,7 +88,9 @@ const EmailParser = () => {
 
                     // Если есть новые email, добавляем их
                     if (data.emails) {
-                        const uniqueEmails = Array.from(new Set([...site.emails, ...data.emails]));
+                        const uniqueEmails = Array.from(
+                            new Set([...site.emails, ...data.emails])
+                        );
                         site.emails = uniqueEmails;
                     }
 
@@ -143,7 +176,7 @@ const EmailParser = () => {
             <div className="content">
                 <p className="text">Welcome to the email parser.</p>
             </div>
-            
+
             <WebsiteInput websites={websites} setWebsites={setWebsites} />
             <ActionButtons
                 websites={websites}
@@ -151,6 +184,7 @@ const EmailParser = () => {
                 setLoading={setLoading}
                 loading={loading}
                 handleClear={handleClear}
+                startParsing={handleSupabaseMessage}
             />
             <EmailTable results={results} />
             <Modal
