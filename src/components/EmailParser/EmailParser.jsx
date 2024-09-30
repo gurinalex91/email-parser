@@ -27,17 +27,20 @@ const EmailParser = () => {
     };
 
     useEffect(() => {
-        const subscription = supabase
-            .from("websites")
-            .on("*", (payload) => {
-                console.log("Change received!", payload);
-                // Обновляй состояние приложения в зависимости от изменений в таблице
-                handleSupabaseMessage(payload);
-            })
+        const channel = supabase
+            .channel("custom-all-channel")
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "websites" },
+                (payload) => {
+                    console.log("Change received!", payload);
+                    handleSupabaseMessage(payload);
+                }
+            )
             .subscribe();
 
         return () => {
-            subscription.unsubscribe();
+            channel.unsubscribe();
         };
     }, []);
 
