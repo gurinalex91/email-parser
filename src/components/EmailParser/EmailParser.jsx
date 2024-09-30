@@ -44,7 +44,7 @@ const EmailParser = () => {
         };
     }, []);
 
-    const handleWebSocketMessage = useCallback((data) => {
+    const handleWebSocketMessage = useCallback(async (data) => {
         console.log("WebSocket message received:", data); // Логируем полученные данные
 
         if (data.status && data.status === "Ошибка") {
@@ -77,6 +77,13 @@ const EmailParser = () => {
                         }`,
                     },
                 ];
+            });
+
+            // Сохраняем данные в Supabase при ошибке
+            await supabase.from("websites").upsert({
+                website: data.website,
+                emails: data.emails || [],
+                status: `Ошибка: ${data.message || "Неизвестная ошибка"}`,
             });
         } else if (data.status && data.status !== "Готов") {
             // Если статус "в процессе" или "Обновление", обновляем данные сайта
@@ -113,6 +120,13 @@ const EmailParser = () => {
                     },
                 ];
             });
+
+            // Сохраняем промежуточные результаты в Supabase
+            await supabase.from("websites").upsert({
+                website: data.website,
+                emails: data.emails || [],
+                status: data.status,
+            });
         } else if (data.status === "Готов") {
             // Когда парсинг одного сайта завершён, обновляем статус на "Готов" и увеличиваем счётчик завершённых сайтов
             setResults((prevResults) => {
@@ -134,6 +148,13 @@ const EmailParser = () => {
                 return prevResults;
             });
             setCompletedSites((prevCompletedSites) => prevCompletedSites + 1);
+
+            // Сохраняем готовый результат в Supabase
+            await supabase.from("websites").upsert({
+                website: data.website,
+                emails: data.emails || [],
+                status: "Готов",
+            });
         }
     }, []);
 
