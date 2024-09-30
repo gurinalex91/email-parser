@@ -108,7 +108,7 @@ const EmailParser = () => {
     }, []);
 
     useEffect(() => {
-        const socket = new WebSocket("wss://email-parser-gold.vercel.app/");
+        const socket = new WebSocket("ws://localhost:5001");
         socket.onopen = () => {
             console.log("Соединение установлено");
             setWs(socket);

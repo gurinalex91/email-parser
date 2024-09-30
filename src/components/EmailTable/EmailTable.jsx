@@ -17,7 +17,7 @@ const EmailTable = ({ results }) => {
                         {/* Используем website как уникальный ключ */}
                         <td>
                             <a
-                                href={`https://${result.website}`}
+                                href={`${result.website}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="link">
